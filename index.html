@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Memo Test para los siervos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f2f2f2;
+      text-align: center;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      padding: 20px;
+    }
+    .hide {
+      display: none;
+    }
+    #game-board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .card {
+      width: 100%;
+      padding-top: 100%;
+      background-color: #ddd;
+      position: relative;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .card-content {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: white;
+      background: #4CAF50;
+      border-radius: 8px;
+      backface-visibility: hidden;
+      transform: rotateY(180deg);
+    }
+    .card.flipped .card-content {
+      transform: rotateY(0deg);
+    }
+    #info {
+      margin: 10px 0;
+    }
+    button {
+      padding: 10px 15px;
+      font-size: 16px;
+      margin: 5px;
+      border: none;
+      border-radius: 6px;
+      background: #4CAF50;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+    }
+    button:hover {
+      background-color: #388e3c;
+      transform: scale(1.05);
+    }
+    select {
+      padding: 8px;
+      width: 100%;
+    }
+    .score-box {
+      text-align: left;
+      background: #e8f5e9;
+      padding: 10px;
+      border-left: 4px solid #4CAF50;
+      margin: 20px 0;
+    }
+    .score-box pre {
+      background: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="start-screen">
+      <h2>🧠 Memo Test para siervos</h2>
+      <p>Instrucciones:</p>
+      <ul style="text-align:left;">
+        <li>Debes encontrar todos los pares (8 pares, 16 cartas).</li>
+        <li>Se mide el <b>tiempo</b> y la <b>cantidad de intentos</b> (cada 2 cartas giradas).</li>
+        <li>Tu <b>puntaje final</b> depende de ambos.</li>
+        <li>Al finalizar, se envía automáticamente tu resultado.</li>
+      </ul>
+
+      <div class="score-box">
+        <h4>🎯 Cómo se calcula tu puntaje:</h4>
+        <ul>
+          <li>Puntaje base: <b>1000 puntos</b></li>
+          <li>-20 pts por cada intento extra (más de 8)</li>
+          <li>-1 pt por cada 5 segundos</li>
+        </ul>
+        <p><b>Ejemplo:</b><br>
+        Jugador A: 16 intentos, 45s → <b>991 pts</b><br>
+        Jugador B: 20 intentos, 30s → <b>754 pts</b>
+        </p>
+        <p>🏆 Gana quien tenga más puntos.</p>
+      </div>
+
+      <label>Seleccioná tu nombre:</label><br>
+      <select id="player-name">
+        <option disabled selected>-- Elegí tu nombre --</option>
+        <option>Aldi</option>
+        <option>Eli</option>
+        <option>Fede</option>
+        <option>Manu</option>
+        <option>Sofi</option>
+        <option>Jessi</option>
+      </select><br><br>
+      <button onclick="startGame()">Comenzar</button>
+    </div>
+
+    <div id="game-screen" class="hide">
+      <div id="info">
+        ⏱ Tiempo: <span id="timer">0</span>s | 🌀 Intentos: <span id="attempts">0</span>
+      </div>
+      <div id="game-board"></div>
+    </div>
+
+    <div id="end-screen" class="hide">
+      <h3>🎉 ¡Juego terminado!</h3>
+      <p><b>Intentos:</b> <span id="final-attempts"></span></p>
+      <p><b>Tiempo:</b> <span id="final-time"></span> segundos</p>
+      <p><b>Puntaje final:</b> <span id="final-score"></span></p>
+      <form id="result-form" action="https://docs.google.com/forms/d/e/1FAIpQLSckJOxk2tYSVnqGq-APRPoC5RG0BOV2uCHKFsDo1eYfMmc0XQ/formResponse" method="POST" target="_blank">
+        <input type="hidden" name="entry.567241429" id="form-name">
+        <input type="hidden" name="entry.526044601" id="form-attempts">
+        <input type="hidden" name="entry.1065108461" id="form-time">
+        <input type="hidden" name="entry.989536994" id="form-score">
+        <button type="submit" id="submit-button">Enviar resultado</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const board = document.getElementById("game-board");
+    const timerSpan = document.getElementById("timer");
+    const attemptsSpan = document.getElementById("attempts");
+    const usedPlayers = new Set();
+    const symbols = ['🍎','🍌','🍇','🍓','🥝','🍍','🍉','🍒'];
+    let firstCard = null;
+    let secondCard = null;
+    let lockBoard = false;
+    let attempts = 0;
+    let matchedPairs = 0;
+    let timer = 0;
+    let timerInterval;
+
+    function shuffle(array) {
+      return [...array].sort(() => 0.5 - Math.random());
+    }
+
+    function startGame() {
+      const name = document.getElementById("player-name").value;
+      if (!name || name.includes("--")) return alert("Elegí tu nombre antes de comenzar");
+      if (usedPlayers.has(name)) return alert("Ya jugaste. No se puede repetir.");
+
+      usedPlayers.add(name); // marcar como jugado
+
+      document.getElementById("start-screen").classList.add("hide");
+      document.getElementById("game-screen").classList.remove("hide");
+      timer = 0;
+      attempts = 0;
+      matchedPairs = 0;
+      timerSpan.textContent = "0";
+      attemptsSpan.textContent = "0";
+      timerInterval = setInterval(() => {
+        timer++;
+        timerSpan.textContent = timer;
+      }, 1000);
+      loadBoard();
+    }
+
+    function loadBoard() {
+      const pairSymbols = shuffle([...symbols, ...symbols]);
+      board.innerHTML = "";
+      pairSymbols.forEach(symbol => {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.dataset.symbol = symbol;
+        card.innerHTML = `<div class="card-content">${symbol}</div>`;
+        card.addEventListener("click", handleCardClick);
+        board.appendChild(card);
+      });
+    }
+
+    function handleCardClick(e) {
+      const clicked = e.currentTarget;
+      if (lockBoard || clicked.classList.contains("flipped")) return;
+      clicked.classList.add("flipped");
+
+      if (!firstCard) {
+        firstCard = clicked;
+        return;
+      }
+
+      secondCard = clicked;
+      attempts++;
+      attemptsSpan.textContent = attempts;
+      lockBoard = true;
+
+      if (firstCard.dataset.symbol === secondCard.dataset.symbol) {
+        matchedPairs++;
+        resetTurn();
+        if (matchedPairs === 8) endGame();
+      } else {
+        setTimeout(() => {
+          firstCard.classList.remove("flipped");
+          secondCard.classList.remove("flipped");
+          resetTurn();
+        }, 800);
+      }
+    }
+
+    function resetTurn() {
+      firstCard = null;
+      secondCard = null;
+      lockBoard = false;
+    }
+
+    function endGame() {
+      clearInterval(timerInterval);
+      const name = document.getElementById("player-name").value;
+      const minMoves = 8;
+      const extraMoves = attempts - minMoves;
+      let score = 1000 - (extraMoves * 20) - Math.floor(timer / 5);
+      if (score < 0) score = 0;
+
+      document.getElementById("game-screen").classList.add("hide");
+      document.getElementById("end-screen").classList.remove("hide");
+
+      document.getElementById("final-attempts").textContent = attempts;
+      document.getElementById("final-time").textContent = timer;
+      document.getElementById("final-score").textContent = score;
+
+      // Completar el form
+      document.getElementById("form-name").value = name;
+      document.getElementById("form-attempts").value = attempts;
+      document.getElementById("form-time").value = timer;
+      document.getElementById("form-score").value = score;
+    }
+  </script>
+</body>
+</html>
