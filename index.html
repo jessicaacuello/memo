@@ -89,7 +89,8 @@
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="container" id="main-content">
+    <!-- Este contenido se reemplazará si ya jugó -->
     <div id="start-screen">
       <h2>🧠 Memo Test para siervos</h2>
       <p>Instrucciones:</p>
@@ -153,6 +154,11 @@
     let timer = 0;
     let timerInterval;
 
+    // Bloqueo global
+    if (localStorage.getItem("bloqueado") === "true") {
+      document.getElementById("main-content").innerHTML = "<h2>Ya jugaste, no se puede volver a iniciar</h2>";
+    }
+
     function shuffle(array) {
       return [...array].sort(() => 0.5 - Math.random());
     }
@@ -161,13 +167,8 @@
       const name = document.getElementById("player-name").value;
       if (!name || name.includes("--")) return alert("Elegí tu nombre antes de comenzar");
 
-      const alreadyPlayed = localStorage.getItem("played_" + name);
-      if (alreadyPlayed) {
-        alert("Ya jugaste con ese nombre. No se puede repetir.");
-        return;
-      }
-
-      localStorage.setItem("played_" + name, "true");
+      // Bloquear para siempre en este navegador
+      localStorage.setItem("bloqueado", "true");
 
       document.getElementById("start-screen").classList.add("hide");
       document.getElementById("game-screen").classList.remove("hide");
