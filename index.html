@@ -99,7 +99,6 @@
         <li>Tu <b>puntaje final</b> depende de ambos.</li>
         <li>Al finalizar, se envía automáticamente tu resultado.</li>
       </ul>
-
       <div class="score-box">
         <h4>🎯 Cómo se calcula tu puntaje:</h4>
         <ul>
@@ -109,11 +108,9 @@
         </ul>
         <p><b>Ejemplo:</b><br>
         Jugador A: 16 intentos, 45s → <b>991 pts</b><br>
-        Jugador B: 20 intentos, 30s → <b>754 pts</b>
-        </p>
+        Jugador B: 20 intentos, 30s → <b>754 pts</b></p>
         <p>🏆 Gana quien tenga más puntos.</p>
       </div>
-
       <label>Seleccioná tu nombre:</label><br>
       <select id="player-name">
         <option disabled selected>-- Elegí tu nombre --</option>
@@ -144,7 +141,6 @@
         <input type="hidden" name="entry.526044601" id="form-attempts">
         <input type="hidden" name="entry.1065108461" id="form-time">
         <input type="hidden" name="entry.989536994" id="form-score">
-        <button type="submit" id="submit-button">Enviar resultado</button>
       </form>
     </div>
   </div>
@@ -172,8 +168,7 @@
       if (!name || name.includes("--")) return alert("Elegí tu nombre antes de comenzar");
       if (usedPlayers.has(name)) return alert("Ya jugaste. No se puede repetir.");
 
-      usedPlayers.add(name); // marcar como jugado
-
+      usedPlayers.add(name);
       document.getElementById("start-screen").classList.add("hide");
       document.getElementById("game-screen").classList.remove("hide");
       timer = 0;
@@ -250,11 +245,13 @@
       document.getElementById("final-time").textContent = timer;
       document.getElementById("final-score").textContent = score;
 
-      // Completar el form
       document.getElementById("form-name").value = name;
       document.getElementById("form-attempts").value = attempts;
       document.getElementById("form-time").value = timer;
       document.getElementById("form-score").value = score;
+
+      // Enviar formulario automáticamente
+      document.getElementById("result-form").submit();
     }
   </script>
 </body>
