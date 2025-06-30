@@ -136,12 +136,7 @@
       <p><b>Intentos:</b> <span id="final-attempts"></span></p>
       <p><b>Tiempo:</b> <span id="final-time"></span> segundos</p>
       <p><b>Puntaje final:</b> <span id="final-score"></span></p>
-      <form id="result-form" action="https://docs.google.com/forms/d/e/1FAIpQLSckJOxk2tYSVnqGq-APRPoC5RG0BOV2uCHKFsDo1eYfMmc0XQ/formResponse" method="POST" target="_blank">
-        <input type="hidden" name="entry.567241429" id="form-name">
-        <input type="hidden" name="entry.526044601" id="form-attempts">
-        <input type="hidden" name="entry.1065108461" id="form-time">
-        <input type="hidden" name="entry.989536994" id="form-score">
-      </form>
+      <p id="send-status" style="color:green;"></p>
     </div>
   </div>
 
@@ -149,7 +144,6 @@
     const board = document.getElementById("game-board");
     const timerSpan = document.getElementById("timer");
     const attemptsSpan = document.getElementById("attempts");
-    const usedPlayers = new Set();
     const symbols = ['🍎','🍌','🍇','🍓','🥝','🍍','🍉','🍒'];
     let firstCard = null;
     let secondCard = null;
@@ -166,9 +160,15 @@
     function startGame() {
       const name = document.getElementById("player-name").value;
       if (!name || name.includes("--")) return alert("Elegí tu nombre antes de comenzar");
-      if (usedPlayers.has(name)) return alert("Ya jugaste. No se puede repetir.");
 
-      usedPlayers.add(name);
+      const alreadyPlayed = localStorage.getItem("played_" + name);
+      if (alreadyPlayed) {
+        alert("Ya jugaste con ese nombre. No se puede repetir.");
+        return;
+      }
+
+      localStorage.setItem("played_" + name, "true");
+
       document.getElementById("start-screen").classList.add("hide");
       document.getElementById("game-screen").classList.remove("hide");
       timer = 0;
@@ -245,13 +245,23 @@
       document.getElementById("final-time").textContent = timer;
       document.getElementById("final-score").textContent = score;
 
-      document.getElementById("form-name").value = name;
-      document.getElementById("form-attempts").value = attempts;
-      document.getElementById("form-time").value = timer;
-      document.getElementById("form-score").value = score;
+      const formData = new FormData();
+      formData.append("entry.567241429", name);
+      formData.append("entry.526044601", attempts);
+      formData.append("entry.1065108461", timer);
+      formData.append("entry.989536994", score);
 
-      // Enviar formulario automáticamente
-      document.getElementById("result-form").submit();
+      fetch("https://docs.google.com/forms/d/e/1FAIpQLSckJOxk2tYSVnqGq-APRPoC5RG0BOV2uCHKFsDo1eYfMmc0XQ/formResponse", {
+        method: "POST",
+        mode: "no-cors",
+        body: formData
+      });
+
+      document.getElementById("send-status").textContent = "✅ Resultado enviado automáticamente.";
+
+      setTimeout(() => {
+        document.body.innerHTML = "<h2>Gracias por jugar 🙌</h2>";
+      }, 3000);
     }
   </script>
 </body>
